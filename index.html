@@ -85,10 +85,20 @@
             <canvas class="ball" aria-hidden="true"></canvas>
           </button>
           <p class="pitch-name" aria-live="polite">
-            <span class="pitch-type">Fastball</span>
-            <span class="pitch-rpm">2,300 rpm</span>
+            <span class="pitch-type">4-Seam Fastball</span>
+            <span class="pitch-rpm">~2,300 rpm</span>
           </p>
-          <p class="pitch-hint">Click the ball to change pitch</p>
+          <div class="ball-controls">
+            <label class="ctl">
+              <span class="ctl-label">Pitch</span>
+              <span class="select"><select class="pitch-select"></select></span>
+            </label>
+            <label class="ctl">
+              <span class="ctl-label">Style</span>
+              <span class="select"><select class="style-select"></select></span>
+            </label>
+          </div>
+          <p class="pitch-hint">Click the ball for a random pitch</p>
         </div>
       </div>
     </section>
