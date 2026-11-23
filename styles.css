@@ -897,6 +897,94 @@ a {
   margin-top: 18px;
 }
 
+.socials {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: 10px;
+  margin: 22px 0 0;
+  padding: 22px 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.social {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 58px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.social:hover {
+  border-color: var(--ink-3);
+}
+
+.social-icon {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  color: var(--ink-2);
+}
+
+.social:hover .social-icon {
+  color: var(--accent);
+}
+
+.social-cut {
+  fill: var(--bg);
+}
+
+.social-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.social-name {
+  font-weight: 650;
+  font-size: 0.95rem;
+}
+
+.social-handle {
+  color: var(--ink-3);
+  font-family: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas,
+    monospace;
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.social-hint {
+  flex: none;
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.social.is-copied .social-hint {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .social-icon {
+    transition: color 0.15s ease;
+  }
+}
+
 /* ---------- Footer ---------- */
 
 .site-footer {

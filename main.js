@@ -63,6 +63,58 @@
   var year = document.getElementById("year");
   if (year) year.textContent = String(new Date().getFullYear());
 
+  /* ---------- Copy buttons (Discord username) ---------- */
+
+  function legacyCopy(text) {
+    var area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.opacity = "0";
+    document.body.appendChild(area);
+    area.select();
+    var ok = false;
+    try {
+      ok = document.execCommand("copy");
+    } catch (e) {}
+    area.remove();
+    return ok;
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text).then(
+        function () { return true; },
+        function () { return legacyCopy(text); }
+      );
+    }
+    return Promise.resolve(legacyCopy(text));
+  }
+
+  var copyStatus = document.getElementById("copy-status");
+  Array.prototype.forEach.call(document.querySelectorAll("[data-copy]"), function (btn) {
+    var hint = btn.querySelector(".social-hint");
+    var original = hint ? hint.textContent : "";
+    var timer = 0;
+    btn.addEventListener("click", function () {
+      var text = btn.getAttribute("data-copy");
+      copyText(text).then(function (ok) {
+        if (hint) hint.textContent = ok ? "Copied!" : "Copy failed";
+        btn.classList.toggle("is-copied", ok);
+        if (copyStatus) {
+          copyStatus.textContent = ok
+            ? "Copied Discord username " + text
+            : "Couldn't copy. The Discord username is " + text;
+        }
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+          if (hint) hint.textContent = original;
+          btn.classList.remove("is-copied");
+        }, 1800);
+      });
+    });
+  });
+
   /* ---------- Projects ---------- */
 
   var STATUS_LABELS = {
