@@ -4,11 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Henry Wei</title>
-  <meta name="description" content="Henry Wei, a class of 2027 student in Hsinchu, Taiwan who learns by building. Simulations, robotics, baseball and web projects, all in one place.">
+  <meta name="description" content="Henry Wei, a class of 2027 student in Zhubei, Taiwan who learns by building. Simulations, robotics, baseball and web projects, all in one place.">
   <link rel="canonical" href="https://henrywei57.github.io/">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Henry Wei">
-  <meta property="og:description" content="A class of 2027 student in Hsinchu, Taiwan who learns by building. Simulations, robotics, baseball and web projects, all in one place.">
+  <meta property="og:description" content="A class of 2027 student in Zhubei, Taiwan who learns by building. Simulations, robotics, baseball and web projects, all in one place.">
   <meta property="og:url" content="https://henrywei57.github.io/">
   <meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#101114" media="(prefers-color-scheme: dark)">
@@ -29,6 +29,7 @@
   <link rel="stylesheet" href="styles.css">
   <script src="projects.js" defer></script>
   <script src="main.js" defer></script>
+  <script src="ball.js" defer></script>
   <script src="circuit.js" defer></script>
 </head>
 <body>
@@ -61,11 +62,11 @@
     <section class="hero" id="top" aria-labelledby="intro-title">
       <canvas class="circuit" aria-hidden="true"></canvas>
       <div class="wrap hero-inner">
-        <div class="hero-text">
-          <p class="eyebrow">Hsinchu, Taiwan</p>
+        <div class="hero-text" data-keepout>
+          <p class="eyebrow">Zhubei, Taiwan</p>
           <h1 id="intro-title">Hi, I'm Henry Wei.</h1>
           <p class="lede">
-            I'm a class of 2027 student in Hsinchu, Taiwan. I grew up around the
+            I'm a class of 2027 student in Zhubei, Taiwan. I grew up around the
             semiconductor industry, and I want to study electrical engineering.
           </p>
           <p>
@@ -79,27 +80,16 @@
           </div>
         </div>
 
-        <svg class="chip" viewBox="0 0 260 260" aria-hidden="true" focusable="false">
-          <g class="chip-pins">
-            <rect x="40" y="65" width="14" height="10" rx="2"/><rect x="40" y="95" width="14" height="10" rx="2"/>
-            <rect x="40" y="125" width="14" height="10" rx="2"/><rect x="40" y="155" width="14" height="10" rx="2"/>
-            <rect x="40" y="185" width="14" height="10" rx="2"/>
-            <rect x="206" y="65" width="14" height="10" rx="2"/><rect x="206" y="95" width="14" height="10" rx="2"/>
-            <rect x="206" y="125" width="14" height="10" rx="2"/><rect x="206" y="155" width="14" height="10" rx="2"/>
-            <rect x="206" y="185" width="14" height="10" rx="2"/>
-            <rect x="65" y="40" width="10" height="14" rx="2"/><rect x="95" y="40" width="10" height="14" rx="2"/>
-            <rect x="125" y="40" width="10" height="14" rx="2"/><rect x="155" y="40" width="10" height="14" rx="2"/>
-            <rect x="185" y="40" width="10" height="14" rx="2"/>
-            <rect x="65" y="206" width="10" height="14" rx="2"/><rect x="95" y="206" width="10" height="14" rx="2"/>
-            <rect x="125" y="206" width="10" height="14" rx="2"/><rect x="155" y="206" width="10" height="14" rx="2"/>
-            <rect x="185" y="206" width="10" height="14" rx="2"/>
-          </g>
-          <rect class="chip-body" x="52" y="52" width="156" height="156" rx="12"/>
-          <circle class="chip-halo" cx="72" cy="72" r="12"/>
-          <circle class="chip-dot" cx="72" cy="72" r="5"/>
-          <text class="chip-label" x="130" y="128" text-anchor="middle">HW-57</text>
-          <text class="chip-sub" x="130" y="150" text-anchor="middle">HSINCHU TW</text>
-        </svg>
+        <div class="pitch" data-keepout hidden>
+          <button class="ball-btn" type="button" aria-label="Change pitch">
+            <canvas class="ball" aria-hidden="true"></canvas>
+          </button>
+          <p class="pitch-name" aria-live="polite">
+            <span class="pitch-type">Fastball</span>
+            <span class="pitch-rpm">2,300 rpm</span>
+          </p>
+          <p class="pitch-hint">Click the ball to change pitch</p>
+        </div>
       </div>
     </section>
 

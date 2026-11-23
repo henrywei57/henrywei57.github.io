@@ -1,11 +1,11 @@
 /*
   The circuit board behind the intro.
 
-  Copper traces are routed out from the chip's pins (and around the board)
-  on a grid, PCB style: straight runs with 45 degree corners. Signal pulses
-  flow along them into the chip, the pins flash when a pulse arrives, the
-  cursor lights up nearby traces, a click on the board sends a burst of
-  pulses, and a click on the chip fires a surge down every pin.
+  Copper traces are routed on a grid, PCB style: straight runs with 45 degree
+  corners. They stay clear of anything marked data-keepout (the text and the
+  baseball). Signal pulses flow along them, the cursor lights up nearby
+  traces, a click on the board sends a burst of pulses, and changing the
+  pitch sends a ring of pulses out from the ball.
 
   With "reduce motion" turned on, the board is drawn once and stays still.
 */
@@ -14,8 +14,6 @@
 
   var hero = document.querySelector(".hero");
   var canvas = hero && hero.querySelector(".circuit");
-  var chip = hero && hero.querySelector(".chip");
-  var textBlock = hero && hero.querySelector(".hero-text");
   if (!hero || !canvas || !canvas.getContext) return;
   var ctx = canvas.getContext("2d");
   if (!ctx) return;
@@ -29,14 +27,12 @@
   var TAU = Math.PI * 2;
 
   var W = 0, H = 0, dpr = 1, cell = 30, lw = 2, viaR = 4;
-  var traces = [], pinTraces = [], dots = [];
+  var traces = [], dots = [];
   var colors = {};
   var traceLayer = document.createElement("canvas");
   var accentLayer = document.createElement("canvas");
   var glowCanvas = document.createElement("canvas");
   var pulses = [], rings = [];
-  var pinEls = chip ? Array.prototype.slice.call(chip.querySelectorAll(".chip-pins rect")) : [];
-  var led = chip ? chip.querySelector(".chip-dot") : null;
   var introStart = 0, introDone = !motion;
   var running = false, onScreen = true, rafId = 0, last = 0;
   var mouse = { x: 0, y: 0, tx: 0, ty: 0, on: false, a: 0 };
@@ -73,9 +69,7 @@
     colors.pulse = v("--pulse", "#e0702a");
     colors.pulseRgb = rgb(colors.pulse);
     colors.head = v("--pulse-head", "#b44d14");
-    colors.pinHot = v("--pin-hot", "#ff9a4d");
     colors.dark = v("--is-dark", "0") === "1";
-    colors.pinBase = pinEls.length ? getComputedStyle(pinEls[0]).fill : colors.pulse;
   }
 
   /* ---------- Routing ---------- */
@@ -90,26 +84,13 @@
       c.height = Math.max(1, Math.round(H * dpr));
     });
 
-    // Line the grid up with the chip's pins, so traces leave them cleanly.
-    // In the chip's SVG, pins sit every 30 units starting at 70.
-    var ox, oy, hasChip = false;
-    var cr = chip ? chip.getBoundingClientRect() : null;
-    if (cr && cr.width > 0) {
-      var k = cr.width / 260;
-      cell = 30 * k;
-      ox = cr.left - hr.left + 70 * k;
-      oy = cr.top - hr.top + 70 * k;
-      hasChip = true;
-    } else {
-      cell = 30;
-      ox = 15;
-      oy = 15;
-    }
+    cell = W < 600 ? 24 : 30;
     lw = clamp(cell * 0.07, 1.5, 2.4);
     viaR = clamp(cell * 0.14, 3, 5);
+    var ox = ((W - 4) % cell) / 2 + 2, oy = ((H - 4) % cell) / 2 + 2;
 
-    var iMin = Math.ceil((2 - ox) / cell), iMax = Math.floor((W - 2 - ox) / cell);
-    var jMin = Math.ceil((2 - oy) / cell), jMax = Math.floor((H - 2 - oy) / cell);
+    var iMin = 0, iMax = Math.floor((W - 2 - ox) / cell);
+    var jMin = 0, jMax = Math.floor((H - 2 - oy) / cell);
     var blocked = new Set(), occ = new Set(), diag = new Set();
     var i, j;
 
@@ -117,21 +98,20 @@
     function X(a) { return ox + a * cell; }
     function Y(b) { return oy + b * cell; }
 
-    // Keep traces off the chip and away from the text.
-    if (hasChip) {
-      for (i = -1; i <= 5; i++) for (j = -1; j <= 5; j++) blocked.add(K(i, j));
-    }
-    if (textBlock) {
-      var tr = textBlock.getBoundingClientRect(), pad = cell * 0.55;
-      var x0 = tr.left - hr.left - pad, x1 = tr.right - hr.left + pad;
-      var y0 = tr.top - hr.top - pad, y1 = tr.bottom - hr.top + pad;
-      for (i = iMin; i <= iMax; i++) {
-        for (j = jMin; j <= jMax; j++) {
-          var x = X(i), y = Y(j);
-          if (x >= x0 && x <= x1 && y >= y0 && y <= y1) blocked.add(K(i, j));
+    // Keep traces away from the text and the ball.
+    Array.prototype.forEach.call(hero.querySelectorAll("[data-keepout]"), function (el) {
+      var r = el.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      var pad = cell * 0.55;
+      var x0 = r.left - hr.left - pad, x1 = r.right - hr.left + pad;
+      var y0 = r.top - hr.top - pad, y1 = r.bottom - hr.top + pad;
+      for (var a = iMin; a <= iMax; a++) {
+        for (var b = jMin; b <= jMax; b++) {
+          var x = X(a), y = Y(b);
+          if (x >= x0 && x <= x1 && y >= y0 && y <= y1) blocked.add(K(a, b));
         }
       }
-    }
+    });
 
     function isFree(a, b) {
       return a >= iMin && a <= iMax && b >= jMin && b <= jMax &&
@@ -182,56 +162,29 @@
       w.diags.forEach(function (key) { diag.delete(key); });
     }
 
-    function makeTrace(pts, pin) {
+    function makeTrace(pts) {
       var p = pts.map(function (q) { return { x: X(q[0]), y: Y(q[1]) }; });
       var cum = [0];
       for (var n = 1; n < p.length; n++) {
         cum.push(cum[n - 1] + Math.hypot(p[n].x - p[n - 1].x, p[n].y - p[n - 1].y));
       }
-      return {
-        p: p,
-        cum: cum,
-        len: cum[cum.length - 1],
-        pin: pin,
-        delay: pin >= 0 ? rand(0, 0.12) : rand(0.15, 0.45)
-      };
+      return { p: p, cum: cum, len: cum[cum.length - 1], delay: rand(0.02, 0.45) };
     }
 
     traces = [];
-    pinTraces = [];
     dots = [];
-
-    if (hasChip) {
-      // Same order as the pins in the SVG: left, right, top, bottom.
-      var specs = [];
-      for (j = 0; j < 5; j++) specs.push([-1, j, 4]);
-      for (j = 0; j < 5; j++) specs.push([5, j, 0]);
-      for (i = 0; i < 5; i++) specs.push([i, -1, 6]);
-      for (i = 0; i < 5; i++) specs.push([i, 5, 2]);
-      var order = specs.map(function (_, n) { return n; });
-      order.sort(function () { return Math.random() - 0.5; });
-      order.forEach(function (n) {
-        var s = specs[n];
-        var w = walk(s[0], s[1], s[2], 3, 46, 1 + Math.floor(Math.random() * 3));
-        if (w.pts.length >= 3) {
-          var t = makeTrace(w.pts, n);
-          traces.push(t);
-          pinTraces.push(t);
-        }
-      });
-    }
 
     var freeCount = 0;
     for (i = iMin; i <= iMax; i++) for (j = jMin; j <= jMax; j++) if (isFree(i, j)) freeCount++;
-    var want = Math.floor(freeCount / 15), tries = want * 6;
+    var want = Math.floor(freeCount / 12), tries = want * 6;
     while (want > 0 && tries-- > 0) {
       var si = iMin + Math.floor(Math.random() * (iMax - iMin + 1));
       var sj = jMin + Math.floor(Math.random() * (jMax - jMin + 1));
       if (!isFree(si, sj)) continue;
       var w2 = walk(si, sj, Math.floor(Math.random() * 4) * 2, 3,
-        6 + Math.floor(Math.random() * 22), 1 + Math.floor(Math.random() * 3));
+        6 + Math.floor(Math.random() * 24), 1 + Math.floor(Math.random() * 3));
       if (w2.pts.length < 4) { release(w2); continue; }
-      traces.push(makeTrace(w2.pts, -1));
+      traces.push(makeTrace(w2.pts));
       want--;
     }
 
@@ -270,8 +223,7 @@
   }
 
   function viaEnds(t) {
-    var end = t.p[t.p.length - 1];
-    return t.pin >= 0 ? [end] : [t.p[0], end];
+    return [t.p[0], t.p[t.p.length - 1]];
   }
 
   function drawDots(g, alpha) {
@@ -309,7 +261,7 @@
     ctx.drawImage(traceLayer, 0, 0, W, H);
   }
 
-  // The traces etch themselves outward on load.
+  // The traces etch themselves onto the board on load.
   function drawIntro(p) {
     drawDots(ctx, clamp(p * 1.6, 0, 1));
     ctx.lineJoin = "round";
@@ -350,35 +302,13 @@
 
   function spawnPulse() {
     if (!traces.length) return;
-    var t, dir;
-    if (pinTraces.length && Math.random() < 0.6) {
-      t = pick(pinTraces);
-      dir = -1; // toward the chip
-    } else {
-      t = pick(traces);
-      dir = Math.random() < 0.5 ? 1 : -1;
-    }
+    var t = pick(traces), dir = Math.random() < 0.5 ? 1 : -1;
     if (t.len < cell * 2) return;
     addPulse(t, dir > 0 ? 0 : t.len, dir, rand(70, 190), rand(26, 70));
   }
 
-  function hitPin(idx) {
-    var el = pinEls[idx];
-    if (el && el.animate) {
-      el.animate({ fill: [colors.pinHot, colors.pinBase] }, { duration: 520, easing: "ease-out" });
-    }
-    if (led && led.animate && chip.classList.contains("led-on")) {
-      led.animate({ opacity: [1, 0.25, 1] }, { duration: 200, easing: "linear" });
-    }
-  }
-
   function arrive(q) {
-    var t = q.t;
-    if (q.dir < 0 && t.pin >= 0) {
-      hitPin(t.pin);
-      return;
-    }
-    var e = q.dir > 0 ? t.p[t.p.length - 1] : t.p[0];
+    var t = q.t, e = q.dir > 0 ? t.p[t.p.length - 1] : t.p[0];
     rings.push({ x: e.x, y: e.y, age: 0, max: 0.6, r0: viaR, r1: viaR * 4 });
   }
 
@@ -477,10 +407,15 @@
     ctx.globalAlpha = 1;
   }
 
-  /* ---------- Clicks ---------- */
+  /* ---------- Bursts ---------- */
 
-  function burst(x, y) {
-    rings.push({ x: x, y: y, age: 0, max: 0.7, r0: 4, r1: 46 });
+  // Pulses leave the traces nearest (x, y). With an "around" radius they
+  // always travel away from that point, like a shockwave.
+  function burst(x, y, around) {
+    var reach = around ? around + cell * 3 : cell * 2.6;
+    rings.push(around
+      ? { x: x, y: y, age: 0, max: 0.8, r0: around, r1: around + 70 }
+      : { x: x, y: y, age: 0, max: 0.7, r0: 4, r1: 46 });
     var hits = [];
     traces.forEach(function (t) {
       var best = -1, bd = Infinity;
@@ -488,23 +423,22 @@
         var d = Math.hypot(t.p[k].x - x, t.p[k].y - y);
         if (d < bd) { bd = d; best = k; }
       }
-      if (bd < cell * 2.6) hits.push({ t: t, k: best, d: bd });
+      if (bd < reach) hits.push({ t: t, k: best, d: bd });
     });
     hits.sort(function (a, b) { return a.d - b.d; });
-    hits.slice(0, 8).forEach(function (h) {
-      var s = h.t.cum[h.k];
-      if (s < h.t.len) addPulse(h.t, s, 1, rand(240, 340), rand(40, 70));
-      if (s > 0) addPulse(h.t, s, -1, rand(240, 340), rand(40, 70));
+    hits.slice(0, around ? 14 : 8).forEach(function (h) {
+      var t = h.t, s = t.cum[h.k];
+      if (around) {
+        var next = t.p[Math.min(h.k + 1, t.p.length - 1)], prev = t.p[Math.max(h.k - 1, 0)];
+        var out = Math.hypot(next.x - x, next.y - y) >= Math.hypot(prev.x - x, prev.y - y) ? 1 : -1;
+        if (h.k === 0) out = 1;
+        if (h.k === t.p.length - 1) out = -1;
+        addPulse(t, s, out, rand(260, 360), rand(40, 70));
+        return;
+      }
+      if (s < t.len) addPulse(t, s, 1, rand(240, 340), rand(40, 70));
+      if (s > 0) addPulse(t, s, -1, rand(240, 340), rand(40, 70));
     });
-  }
-
-  // Click the chip: a pulse leaves every pin at once.
-  function surge() {
-    pinTraces.forEach(function (t) { addPulse(t, 0, 1, rand(280, 360), rand(50, 80)); });
-    pinEls.forEach(function (el, n) { hitPin(n); });
-    if (chip && chip.animate) {
-      chip.animate({ transform: ["scale(1)", "scale(0.96)", "scale(1)"] }, { duration: 260, easing: "ease-out" });
-    }
   }
 
   /* ---------- Loop ---------- */
@@ -565,43 +499,9 @@
     if (!motion) renderStill();
   }
 
-  /* ---------- Chip power-on ---------- */
-
-  function bootChip() {
-    if (!chip) return;
-    // Pins light up in a sweep around the chip.
-    var sweep = [10, 11, 12, 13, 14, 5, 6, 7, 8, 9, 19, 18, 17, 16, 15, 4, 3, 2, 1, 0];
-    sweep.forEach(function (idx, n) {
-      if (pinEls[idx]) pinEls[idx].style.setProperty("--i", n);
-    });
-    if (!motion) {
-      chip.classList.add("is-on", "led-on");
-      return;
-    }
-    var label = chip.querySelector(".chip-label");
-    var word = label ? label.textContent : "";
-    if (label) label.textContent = "";
-    requestAnimationFrame(function () {
-      requestAnimationFrame(function () { chip.classList.add("is-on"); });
-    });
-    setTimeout(function () {
-      if (!label) { chip.classList.add("led-on"); return; }
-      var n = 0;
-      var timer = setInterval(function () {
-        n++;
-        label.textContent = word.slice(0, n) + (n < word.length ? "_" : "");
-        if (n >= word.length) {
-          clearInterval(timer);
-          chip.classList.add("led-on");
-        }
-      }, 85);
-    }, 800);
-  }
-
   /* ---------- Wiring ---------- */
 
   rebuild();
-  bootChip();
 
   var resizeTimer = 0, lastW = W, lastH = H;
   if ("ResizeObserver" in window) {
@@ -659,8 +559,14 @@
   hero.addEventListener("click", function (e) {
     if (e.target.closest("a, button")) return;
     if (window.getSelection && String(window.getSelection())) return;
-    if (chip && chip.contains(e.target)) { surge(); return; }
     var r = hero.getBoundingClientRect();
     burst(e.clientX - r.left, e.clientY - r.top);
+  });
+
+  // ball.js fires this when the pitch changes.
+  hero.addEventListener("circuit:burst", function (e) {
+    var d = e.detail || {}, r = hero.getBoundingClientRect();
+    if (d.x == null) return;
+    burst(d.x - r.left, d.y - r.top, d.r || 40);
   });
 })();
